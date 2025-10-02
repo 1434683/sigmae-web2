@@ -12,7 +12,7 @@ const Toast: React.FC<{ message: string; type?: 'success' | 'error' }> = ({ mess
   const bgColor = type === 'success' ? 'bg-green-600' : 'bg-red-600';
   return (
     <div className={`fixed top-20 right-8 text-white py-3 px-5 rounded-lg shadow-xl z-50 flex items-center ${bgColor}`} role="alert" aria-live="assertive">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
       <span>{message}</span>
     </div>
   );
@@ -171,7 +171,7 @@ const FeriasPage: React.FC = () => {
             {toast && <Toast message={toast.message} type={toast.type} />}
             <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                 <h1 className="text-3xl font-bold text-pm-gray-800">Controle de Férias</h1>
-                {role === 'ADMIN' && (<button onClick={() => openModal()} className="bg-pm-blue hover:bg-pm-blue-dark text-white font-bold py-2 px-4 rounded-md flex items-center shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Agendar Férias</button>)}
+                {role === 'ADMIN' && (<button onClick={() => openModal()} className="bg-pm-blue hover:bg-pm-blue-dark text-white font-bold py-2 px-4 rounded-md flex items-center shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Agendar Férias</button>)}
             </div>
             <div className="bg-white p-4 rounded-lg shadow-md mb-6"><div className={`grid grid-cols-1 ${role === 'ADMIN' ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
                 <select name="ano" value={filters.ano} onChange={handleFilterChange} className="w-full px-3 py-2 border rounded-md"><option value="">Todos Anos</option>{anosDisponiveis.map(a => <option key={a} value={a}>{a}</option>)}</select>

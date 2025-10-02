@@ -13,6 +13,8 @@ export const useFilteredFolgas = (filters: { nomeRe: string; pelotao: string; ap
             .filter(f => {
                 if (role === 'SUBORDINADO') return f.policialld === currentUser?.policialId;
                 if (role === 'SARGENTO') {
+                    // O "Sargento Mestre" de teste pode ver tudo
+                    if (currentUser?.pelotao === 'TODOS') return true;
                     return f.pelotao === currentUser?.pelotao || f.sargentoResponsavelld === currentUser?.id;
                 }
                 return true; // ADMIN vê tudo
@@ -39,7 +41,7 @@ export const useDashboardData = (filters: { mes: string; pelotao: string; postoG
             .filter(f => {
                 // Role-based filtering first
                 if (role === 'SUBORDINADO') return f.policialld === currentUser?.policialId;
-                if (role === 'SARGENTO') return f.pelotao === currentUser?.pelotao;
+                if (role === 'SARGENTO' && currentUser?.pelotao !== 'TODOS') return f.pelotao === currentUser?.pelotao;
                 return true;
             })
             .filter(folga => {
@@ -105,11 +107,13 @@ export const useCalendarData = () => {
     const folgasAtivasPorDia = useMemo(() => {
         const map = new Map<string, Folga[]>();
         folgas
-            .filter(f => f.status === StatusFolga.ATIVA)
+            .filter(f => f.status === StatusFolga.ATIVA && f.aprovacao === Aprovacao.VALIDADA_ADMIN)
             .filter(f => {
                 if (role === 'SUBORDINADO') return f.policialld === currentUser?.policialId;
-                if (role === 'SARGENTO') return f.pelotao === currentUser?.pelotao;
-                return true; // ADMIN
+                if (role === 'SARGENTO' && currentUser?.pelotao !== 'TODOS') {
+                    return f.pelotao === currentUser?.pelotao;
+                }
+                return true; // ADMIN or Master Sargento
             })
             .forEach(folga => {
                 const dateKey = folga.data;
@@ -126,8 +130,10 @@ export const useCalendarData = () => {
             .filter(f => {
                 const policial = policiaisMap.get(f.policialId);
                 if (role === 'SUBORDINADO') return f.policialId === currentUser?.policialId;
-                if (role === 'SARGENTO') return policial?.pelotao === currentUser?.pelotao;
-                return true; // ADMIN
+                if (role === 'SARGENTO' && currentUser?.pelotao !== 'TODOS') {
+                    return policial?.pelotao === currentUser?.pelotao;
+                }
+                return true; // ADMIN or Master Sargento
             })
             .forEach(feria => {
                 const policial = policiaisMap.get(feria.policialId);
@@ -154,7 +160,7 @@ export const useCalendarData = () => {
     const eventosAgendaPorDia = useMemo(() => {
         const map = new Map<string, AgendaEvento[]>();
         const eventosFiltrados = agendaEventos.filter(evento => {
-            if (role === 'ADMIN') return true;
+            if (role === 'ADMIN' || (role === 'SARGENTO' && currentUser?.pelotao === 'TODOS')) return true;
             if (role === 'SARGENTO') return evento.policiaisIds.some(id => policiaisMap.get(id)?.pelotao === currentUser?.pelotao);
             if (role === 'SUBORDINADO') return evento.policiaisIds.includes(currentUser?.policialId ?? -1);
             return false;
@@ -240,7 +246,9 @@ export const useFilteredFerias = (filters: { ano: string; pelotao: string; statu
                 return f;
             })
             .filter(f => {
-                const matchUser = role === 'ADMIN' || (role === 'SARGENTO' && f.pelotao === currentUser?.pelotao) || f.policialId === currentUser?.policialId;
+                const matchUser = role === 'ADMIN' ||
+                  (role === 'SARGENTO' && (currentUser?.pelotao === 'TODOS' || f.pelotao === currentUser?.pelotao)) ||
+                  f.policialId === currentUser?.policialId;
                 const matchAno = !filters.ano || f.anoReferencia.toString() === filters.ano;
                 const matchPelotao = !filters.pelotao || f.pelotao === filters.pelotao;
                 const matchStatus = !filters.status || f.status === filters.status;
@@ -264,10 +272,10 @@ export const useEAPReportData = (filters: { tipoFiltro: TipoEvento, pelotaoFiltr
     const { role, currentUser } = useAuth();
 
     const roleFilteredPoliciais = useMemo(() => {
-        if (role === 'SARGENTO') {
+        if (role === 'SARGENTO' && currentUser?.pelotao !== 'TODOS') {
             return policiais.filter(p => p.pelotao === currentUser?.pelotao);
         }
-        return policiais; // ADMIN sees all
+        return policiais; // ADMIN and Master Sargento see all
     }, [policiais, role, currentUser]);
     
     return useMemo(() => {

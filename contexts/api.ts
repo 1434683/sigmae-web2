@@ -10,8 +10,15 @@ const SEED_POLICIAIS: Policial[] = [
   { id: 3, nome: 'FAUSTO SILVA', re: '112233-4', postoGrad: 'Sd 1ª Cl', ativo: false, pelotao: 'ADM' },
   { id: 4, nome: 'ANA MARIA BRAGA', re: '445566-7', postoGrad: 'Cap', ativo: true, pelotao: 'ADM' },
   { id: 5, nome: 'RODRIGO FARO', re: '778899-0', postoGrad: '2º Ten', ativo: true, pelotao: 'ROCAM' },
+  { id: 6, nome: 'USUARIO TESTE SUBORDINADO', re: '123123-1', postoGrad: 'Sd 2ª Cl', ativo: true, pelotao: 'PEL-A' },
 ];
-const SEED_USERS: User[] = [{ id: 101, policialId: null, nome: 'Administrador do Sistema', reLogin: '000000', role: 'ADMIN', acessoLiberado: true, senha: 'admin123', ativo: true, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString() }];
+const SEED_USERS: User[] = [
+    { id: 101, policialId: null, nome: 'Administrador do Sistema', reLogin: '000000', role: 'ADMIN', acessoLiberado: true, senha: 'admin123', ativo: true, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString() },
+    // Adiciona um usuário "Sargento Mestre" para testes, com visibilidade de todos os pelotões
+    { id: 102, policialId: null, nome: 'Sargento Mestre (TESTE)', reLogin: '132155', role: 'SARGENTO', acessoLiberado: true, senha: '132155', ativo: true, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), pelotao: 'TODOS', postoGrad: '1º Sgt' },
+    // Adiciona um usuário "Subordinado" para testes
+    { id: 103, policialId: 6, nome: 'USUARIO TESTE SUBORDINADO', reLogin: '123123', role: 'SUBORDINADO', acessoLiberado: true, senha: '123123', ativo: true, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), pelotao: 'PEL-A', postoGrad: 'Sd 2ª Cl' },
+];
 const SEED_FOLGAS: Folga[] = [
   { folgald: '1', policialld: 1, nome: 'CARLOS ALBERTO DE NOBREGA', re: '123456-7', data: '2024-07-20', status: StatusFolga.ATIVA, aprovacao: Aprovacao.VALIDADA_ADMIN, criadaPorld: 101, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), pelotao: 'PEL-A', trocadaPara: null, motivo: null, adminld: 101, adminParecer: 'Ok' },
   { folgald: '2', policialld: 2, nome: 'SILVIO SANTOS', re: '987654-3', data: '2024-07-22', status: StatusFolga.ATIVA, aprovacao: Aprovacao.VALIDADA_ADMIN, criadaPorld: 101, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), pelotao: 'PEL-B', trocadaPara: null, motivo: null, adminld: 101, adminParecer: 'Ok' },
