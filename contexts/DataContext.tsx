@@ -102,7 +102,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const folgaContaConsumo = (f: Folga): boolean => {
       const isApprovedAndActive = f.aprovacao === Aprovacao.VALIDADA_ADMIN && f.status === StatusFolga.ATIVA;
       if (!isApprovedAndActive) return false;
-      return f.motivo === 'Folga Cmt Geral';
+      // Folga Cmt Geral and Folga Cmt Cia should consume credits.
+      return f.motivo === 'Folga Cmt Geral' || (f.motivo?.startsWith('Folga Cmt Cia') ?? false);
     };
     
     const getCreditsFor = useCallback((policialId: number, year: number) => {

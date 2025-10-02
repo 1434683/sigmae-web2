@@ -153,7 +153,7 @@ const FolgasPage: React.FC = () => {
                 if (!currentFolga.policialld) throw new Error("Policial é obrigatório.");
                 if (!currentFolga.data || !folgaDate || folgaDate < today) throw new Error("Data inválida. Selecione uma data de hoje ou futura.");
                 
-                if (motivoTipo === 'Folga Cmt Geral') {
+                if (motivoTipo === 'Folga Cmt Geral' || motivoTipo === 'Folga Cmt Cia') {
                     const { ok, error, warn } = canRequestFolga({
                         policialId: currentFolga.policialld, dateISO: currentFolga.data,
                         allowOverride: role === 'ADMIN' || role === 'SARGENTO',
