@@ -49,7 +49,7 @@ const INITIAL_DB = {
     comentarios: [], 
     grupos: SEED_GRUPOS,
     protocoloDocs: [],
-    protocoloContador: {},
+    protocoloContador: {} as Record<number, number>,
 };
 
 // --- DB Management ---

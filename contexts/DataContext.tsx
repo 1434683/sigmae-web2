@@ -61,7 +61,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const refetchData = useCallback(async () => {
         const allData = await api.getAllData();
-        setState(allData);
+        setState(allData as DataState);
     }, []);
 
     useEffect(() => {
@@ -102,8 +102,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const folgaContaConsumo = (f: Folga): boolean => {
       const isApprovedAndActive = f.aprovacao === Aprovacao.VALIDADA_ADMIN && f.status === StatusFolga.ATIVA;
       if (!isApprovedAndActive) return false;
-      // Folga Cmt Geral and Folga Cmt Cia should consume credits.
-      return f.motivo === 'Folga Cmt Geral' || (f.motivo?.startsWith('Folga Cmt Cia') ?? false);
+      return f.motivo === 'Folga Cmt Geral';
     };
     
     const getCreditsFor = useCallback((policialId: number, year: number) => {
@@ -236,7 +235,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const addAgendaEvento = useCallback(async (eventoData: Omit<AgendaEvento, 'id' | 'criadoEm' | 'criadoPorId' | 'atualizadoEm'>, currentUser: User) => {
         // Fix: Explicitly type `createdEvent` to avoid properties being typed as 'unknown'.
-        const createdEvent: AgendaEvento = await api.createAgendaEvento(eventoData, currentUser);
+        const createdEvent = await api.createAgendaEvento(eventoData, currentUser) as AgendaEvento;
         await refetchData();
 
         const userMap = new Map(state.users.map(u => [u.policialId, u]));
@@ -257,7 +256,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const updateAgendaEvento = useCallback(async (eventoId: string, updates: Partial<AgendaEvento>, currentUser: User) => {
         const original = state.agendaEventos.find(e => e.id === eventoId)!;
         // Fix: Explicitly type `updated` to avoid properties being typed as 'unknown'.
-        const updated: AgendaEvento = await api.updateAgendaEvento(eventoId, updates, currentUser);
+        const updated = await api.updateAgendaEvento(eventoId, updates, currentUser) as AgendaEvento;
         await refetchData();
         
         const originalIds = new Set(original.policiaisIds);
@@ -334,7 +333,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [refetchData]);
 
     const addProtocoloDoc = useCallback(async (docData: Omit<ProtocoloDocumento, 'id'|'numero'|'ano'|'sequencial'|'criadoEm'>, currentUser: User) => {
-        const newDoc = await api.createProtocoloDoc(docData, currentUser);
+        const newDoc = await api.createProtocoloDoc(docData, currentUser) as ProtocoloDocumento;
         await refetchData();
         return newDoc;
     }, [refetchData]);
