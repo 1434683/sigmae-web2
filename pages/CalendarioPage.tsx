@@ -191,13 +191,11 @@ const CalendarioPage: React.FC = () => {
                 <span className={`font-medium text-sm md:text-base ${isToday ? "" : feriasDoDia.length > 0 ? 'text-green-900' : hasEvents ? 'text-pm-gray-800' : ''} ${folgasDoDia.length > 0 ? 'group-hover:text-white' : ''}`}>{day.getDate()}</span>
                 <div className="flex-grow flex items-end justify-end flex-wrap-reverse gap-1">
                     {tiposDeEventosDoDia.map(tipo => {
-// Fix: Cast `tipo` to `TipoEvento` to resolve `unknown` type error for indexing.
-                        const { icon: Icon, style } = EVENTO_ICON_MAP[tipo as TipoEvento];
+                        const { icon: Icon, style } = EVENTO_ICON_MAP[tipo];
                         const count = eventosDoDia.filter(e => e.tipo === tipo).length;
-// Fix: Cast `tipo` to `TipoEvento` to resolve `unknown` type error for indexing.
-                        const title = `${count} ${TIPO_EVENTO_LABELS[tipo as TipoEvento]}${count > 1 ? 's' : ''}`;
+                        const title = `${count} ${TIPO_EVENTO_LABELS[tipo]}${count > 1 ? 's' : ''}`;
                         return (
-                            <span key={tipo as string} className={`w-6 h-6 rounded-full flex items-center justify-center font-bold border-2 border-white ${style}`} title={title}>
+                            <span key={tipo} className={`w-6 h-6 rounded-full flex items-center justify-center font-bold border-2 border-white ${style}`} title={title}>
                                <Icon className="h-4 w-4" />
                             </span>
                         );
