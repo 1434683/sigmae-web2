@@ -224,7 +224,33 @@ const FolgasPage: React.FC = () => {
         }
     };
     
-    // Placeholder for the rest of the component's logic and JSX
+    const folgaComentarios = useMemo(() => {
+        if (!detailsFolga) return [];
+        return comentarios.filter(c => c.folgald === detailsFolga.folgald).sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    }, [comentarios, detailsFolga]);
+    
+    const handleAddComment = async () => {
+        if (!detailsFolga || !newComment.trim() || !currentUser) return;
+        try {
+            await addComentario(detailsFolga.folgald, newComment, currentUser);
+            setNewComment('');
+            setToast({ message: 'Comentário adicionado!', type: 'success'});
+        } catch (error: any) {
+            setToast({ message: error.message, type: 'error' });
+        }
+    };
+
+    const handleRestore = async (folga: Folga) => {
+        if (!currentUser || !window.confirm("Restaurar esta folga para ATIVA?")) return;
+        try {
+            await updateFolga(folga.folgald, { status: StatusFolga.ATIVA, trocadaPara: null }, currentUser);
+            setToast({ message: "Folga restaurada!", type: 'success' });
+            setDetailsModalOpen(false);
+        } catch (error: any) {
+            setToast({ message: error.message, type: 'error' });
+        }
+    }
+
     return (
         <div className="container mx-auto">
             {toast && <Toast message={toast.message} type={toast.type} />}
@@ -273,11 +299,229 @@ const FolgasPage: React.FC = () => {
                  {filteredFolgas.length === 0 && <p className="text-center p-4 text-pm-gray-500">Nenhuma folga encontrada.</p>}
             </div>
             
-            <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title="Gerenciar Folga">
-                {/* Modal content would go here */}
+            <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title={
+                modalMode === 'add' ? 'Acionar Nova Folga' :
+                modalMode === 'trocar' ? 'Trocar Folga' :
+                modalMode === 'excluir' ? 'Excluir Folga' :
+                'Dar Parecer sobre Folga'
+            }>
+                {currentFolga && (
+                    <form onSubmit={e => { e.preventDefault(); handleSave(); }} className="space-y-4">
+                        {modalMode === 'add' && (
+                            <>
+                                <div>
+                                    <label className="block text-sm font-medium text-pm-gray-700">Policial</label>
+                                    {role === 'SUBORDINADO' ? (
+                                        <input
+                                            type="text"
+                                            value={currentUser?.nome || ''}
+                                            disabled
+                                            className="mt-1 w-full border border-gray-300 rounded-md p-2 bg-pm-gray-100"
+                                        />
+                                    ) : (
+                                        <div>
+                                            <input
+                                                type="text"
+                                                placeholder="Buscar por nome, RE ou pelotão..."
+                                                value={policialSearch}
+                                                onChange={e => setPolicialSearch(e.target.value)}
+                                                className="mt-1 w-full border border-gray-300 rounded-md p-2 mb-1"
+                                            />
+                                            <select
+                                                value={currentFolga.policialld || ''}
+                                                onChange={e => setCurrentFolga(p => ({ ...p, policialld: Number(e.target.value) }))}
+                                                className="w-full border border-gray-300 rounded-md p-2"
+                                                required
+                                                size={Math.min(5, filteredPoliciaisParaSelecao.length + 1)}
+                                            >
+                                                <option value="" disabled>Selecione um policial</option>
+                                                {filteredPoliciaisParaSelecao.map(p => (
+                                                    <option key={p.id} value={p.id}>
+                                                        {p.postoGrad} {p.nome} ({p.re}) - {p.pelotao}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-pm-gray-700">Data da Folga</label>
+                                    <input
+                                        type="date"
+                                        value={currentFolga.data || ''}
+                                        onChange={e => setCurrentFolga(p => ({ ...p, data: e.target.value }))}
+                                        className="mt-1 w-full border border-gray-300 rounded-md p-2"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-pm-gray-700">Tipo do Motivo</label>
+                                    <select
+                                        value={motivoTipo}
+                                        onChange={e => setMotivoTipo(e.target.value)}
+                                        className="mt-1 w-full border border-gray-300 rounded-md p-2"
+                                        required
+                                    >
+                                        <option value="" disabled>Selecione um tipo...</option>
+                                        <option value="Folga Cmt Geral">Folga Cmt Geral</option>
+                                        <option value="Folga Cmt Cia">Folga Cmt Cia</option>
+                                        <option value="Folga Compensação">Folga Compensação</option>
+                                        <option value="Folga Semanal">Folga Semanal</option>
+                                        <option value="Folga Outros">Folga Outros</option>
+                                    </select>
+                                </div>
+
+                                {motivoTipo === 'Folga Cmt Cia' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-pm-gray-700">Justificativa (Cmt Cia)</label>
+                                        <textarea value={motivoDetalhes} onChange={e => setMotivoDetalhes(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md p-2" rows={3} required />
+                                    </div>
+                                )}
+
+                                {motivoTipo === 'Folga Compensação' && (
+                                    <div className="p-3 border rounded-md bg-pm-gray-50 space-y-3">
+                                        <h4 className="font-semibold text-sm">Detalhes do Serviço Compensado</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                            <div><label className="block text-xs">Data</label><input type="date" value={compensacaoData} onChange={e => setCompensacaoData(e.target.value)} className="mt-1 w-full border-gray-300 rounded-md p-2 text-sm" required /></div>
+                                            <div><label className="block text-xs">Início</label><input type="time" value={compensacaoInicio} onChange={e => setCompensacaoInicio(e.target.value)} className="mt-1 w-full border-gray-300 rounded-md p-2 text-sm" required /></div>
+                                            <div><label className="block text-xs">Fim</label><input type="time" value={compensacaoFim} onChange={e => setCompensacaoFim(e.target.value)} className="mt-1 w-full border-gray-300 rounded-md p-2 text-sm" required /></div>
+                                        </div>
+                                         <div><label className="block text-xs">Nº BOPM (Opcional)</label><input type="text" value={compensacaoBOPM} onChange={e => setCompensacaoBOPM(e.target.value)} className="mt-1 w-full border-gray-300 rounded-md p-2 text-sm" /></div>
+                                    </div>
+                                )}
+                                
+                                {motivoTipo === 'Folga Semanal' && (
+                                    <div className="p-3 border rounded-md bg-pm-gray-50 space-y-3">
+                                        <h4 className="font-semibold text-sm">Tipo de Folga Semanal</h4>
+                                         <div className="flex gap-4">
+                                            <label className="flex items-center"><input type="radio" name="folgaSemanalTipo" value="integral" checked={folgaSemanalTipo === 'integral'} onChange={() => setFolgaSemanalTipo('integral')} className="mr-2"/> Integral</label>
+                                            <label className="flex items-center"><input type="radio" name="folgaSemanalTipo" value="meio" checked={folgaSemanalTipo === 'meio'} onChange={() => setFolgaSemanalTipo('meio')} className="mr-2"/> Meio Expediente</label>
+                                        </div>
+                                        {folgaSemanalTipo === 'meio' && (
+                                            <div className="pl-6 border-l-2">
+                                                <h5 className="text-xs font-semibold">Horário</h5>
+                                                <div className="flex gap-4 mt-1">
+                                                     <label className="flex items-center"><input type="radio" name="meioExpedienteHorario" value="08-13" checked={meioExpedienteHorario === '08-13'} onChange={() => setMeioExpedienteHorario('08-13')} className="mr-2"/> 08:00 às 13:00</label>
+                                                     <label className="flex items-center"><input type="radio" name="meioExpedienteHorario" value="13-18" checked={meioExpedienteHorario === '13-18'} onChange={() => setMeioExpedienteHorario('13-18')} className="mr-2"/> 13:00 às 18:00</label>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {motivoTipo === 'Folga Outros' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-pm-gray-700">Justificativa (Outros)</label>
+                                        <textarea value={motivoDetalhes} onChange={e => setMotivoDetalhes(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md p-2" rows={3} required />
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {modalMode === 'trocar' && (
+                             <div>
+                                <label className="block text-sm font-medium text-pm-gray-700">Nova Data da Folga</label>
+                                <input type="date" value={currentFolga.trocadaPara || ''} onChange={e => setCurrentFolga(p => ({...p, trocadaPara: e.target.value}))} className="mt-1 w-full border-gray-300 rounded-md p-2" required/>
+                             </div>
+                        )}
+                        
+                        {(modalMode === 'trocar' || modalMode === 'excluir' || modalMode === 'parecer' || modalMode === 'sargento') && (
+                             <div>
+                                <label className="block text-sm font-medium text-pm-gray-700">
+                                    {modalMode === 'trocar' ? 'Motivo da Troca' : modalMode === 'excluir' ? 'Motivo da Exclusão' : 'Parecer'}
+                                </label>
+                                <textarea value={parecer} onChange={e => setParecer(e.target.value)} className="mt-1 w-full border-gray-300 rounded-md p-2" rows={4} required></textarea>
+                             </div>
+                        )}
+
+                        <div className="flex justify-end pt-4 space-x-2">
+                            <button type="button" onClick={() => setModalOpen(false)} className="bg-pm-gray-200 hover:bg-pm-gray-300 text-pm-gray-800 font-bold py-2 px-4 rounded-md">Cancelar</button>
+                            <button type="submit" className="bg-pm-blue hover:bg-pm-blue-dark text-white font-bold py-2 px-4 rounded-md">
+                                {modalMode === 'add' ? 'Acionar Folga' : 'Salvar'}
+                            </button>
+                        </div>
+                    </form>
+                )}
             </Modal>
             <Modal isOpen={isDetailsModalOpen} onClose={() => setDetailsModalOpen(false)} title="Detalhes da Folga">
-                 {/* Details Modal content would go here */}
+                 {detailsFolga && (
+                    <div className="space-y-4">
+                        <div>
+                            <p className="font-bold text-lg">{detailsFolga.nome}</p>
+                            <p className="text-sm text-pm-gray-500">RE: {detailsFolga.re} - {detailsFolga.pelotao}</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-pm-gray-50 rounded-lg border">
+                            <div>
+                                <p className="text-xs font-semibold">DATA DA FOLGA</p>
+                                <p>{new Date(detailsFolga.data + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                            </div>
+                             <div>
+                                <p className="text-xs font-semibold">STATUS APROVAÇÃO</p>
+                                <p><span className={`px-2 py-1 text-xs font-medium rounded-full ${APROVACAO_COLORS[detailsFolga.aprovacao]}`}>{APROVACAO_LABELS[detailsFolga.aprovacao]}</span></p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold">STATUS FOLGA</p>
+                                <p>{detailsFolga.status}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <p className="font-semibold">Motivo:</p>
+                            <p className="p-2 bg-pm-gray-50 rounded mt-1 whitespace-pre-wrap">{detailsFolga.motivo || 'Não especificado'}</p>
+                        </div>
+                        {detailsFolga.sargentoParecer && (
+                            <div><p className="font-semibold">Parecer Sargento:</p><p className="p-2 bg-pm-gray-50 rounded mt-1">{detailsFolga.sargentoParecer}</p></div>
+                        )}
+                        {detailsFolga.adminParecer && (
+                            <div><p className="font-semibold">Parecer Admin:</p><p className="p-2 bg-pm-gray-50 rounded mt-1">{detailsFolga.adminParecer}</p></div>
+                        )}
+
+                        {/* Ações */}
+                        <div className="flex flex-wrap gap-2 pt-2 border-t">
+                             {/* Ações do Sargento */}
+                            {role === 'SARGENTO' && detailsFolga.aprovacao === Aprovacao.ENVIADA_SARGENTO && (
+                                <>
+                                    <button onClick={() => { setDetailsModalOpen(false); openModal('sargento', { ...detailsFolga, actionType: 'aprovar' }); }} className="bg-green-500 text-white px-3 py-1 rounded text-sm">Aprovar</button>
+                                    <button onClick={() => { setDetailsModalOpen(false); openModal('sargento', { ...detailsFolga, actionType: 'negar' }); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm">Negar</button>
+                                </>
+                            )}
+                            {/* Ações do Admin */}
+                            {role === 'ADMIN' && detailsFolga.aprovacao === Aprovacao.APROVADA_SARGENTO && (
+                                <>
+                                    <button onClick={() => { setDetailsModalOpen(false); openModal('parecer', { ...detailsFolga, actionType: 'aprovar' }); }} className="bg-green-500 text-white px-3 py-1 rounded text-sm">Validar</button>
+                                    <button onClick={() => { setDetailsModalOpen(false); openModal('parecer', { ...detailsFolga, actionType: 'negar' }); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm">Reprovar</button>
+                                </>
+                            )}
+                            {/* Ações de Troca/Exclusão */}
+                            {(role === 'ADMIN' || role === 'SARGENTO') && detailsFolga.status === StatusFolga.ATIVA && detailsFolga.aprovacao === Aprovacao.VALIDADA_ADMIN && (
+                                <>
+                                    <button onClick={() => { setDetailsModalOpen(false); openModal('trocar', detailsFolga); }} className="bg-yellow-500 text-white px-3 py-1 rounded text-sm">Trocar</button>
+                                    <button onClick={() => { setDetailsModalOpen(false); openModal('excluir', detailsFolga); }} className="bg-gray-500 text-white px-3 py-1 rounded text-sm">Excluir</button>
+                                </>
+                            )}
+                            {/* Ação de Restaurar */}
+                            {role === 'ADMIN' && (detailsFolga.status === StatusFolga.TROCADA || detailsFolga.status === StatusFolga.EXCLUIDA) && (
+                                <button onClick={() => handleRestore(detailsFolga)} className="bg-blue-500 text-white px-3 py-1 rounded text-sm">Restaurar Folga</button>
+                            )}
+                        </div>
+
+                        {/* Comentários */}
+                        <div className="pt-4 border-t">
+                            <h4 className="font-semibold mb-2">Comentários</h4>
+                            <div className="space-y-3 max-h-40 overflow-y-auto pr-2 mb-2">
+                                {folgaComentarios.length > 0 ? folgaComentarios.map(c => (
+                                    <div key={c.id} className="bg-pm-gray-100 p-2 rounded-md text-sm">
+                                        <p className="font-semibold">{c.actorPostoGrad} {c.actorNome} <span className="text-xs text-pm-gray-500 font-normal">- {new Date(c.timestamp).toLocaleString('pt-BR')}</span></p>
+                                        <p>{c.mensagem}</p>
+                                    </div>
+                                )) : <p className="text-sm text-pm-gray-500 italic">Nenhum comentário.</p>}
+                            </div>
+                            <div className="flex items-start space-x-2">
+                                <textarea value={newComment} onChange={e => setNewComment(e.target.value)} rows={2} className="w-full border rounded-md p-2" placeholder="Adicionar comentário..."></textarea>
+                                <button onClick={handleAddComment} className="bg-pm-blue text-white px-4 py-2 rounded-md text-sm">Enviar</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </div>
     );
