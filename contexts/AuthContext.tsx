@@ -1,3 +1,22 @@
+const APP_VERSION = "2025.10.07"; // mude quando fizer deploy novo
+
+function clearAllAppStorage() {
+  try {
+    // local/session
+    localStorage.clear();
+    sessionStorage.clear();
+    // IndexedDB (apaga tokens de libs antigas, se houver)
+    const anyWindow = window as any;
+    if (anyWindow.indexedDB?.databases) {
+      anyWindow.indexedDB.databases().then((dbs: any[]) => {
+        dbs?.forEach((db: any) => db?.name && indexedDB.deleteDatabase(db.name));
+      });
+    }
+  } catch {}
+}
+
+
+
 import React, { createContext, useContext, useMemo, useState, useCallback, ReactNode, useEffect } from 'react';
 import { User, UserRole, Policial } from '../types';
 import { api } from './api';
@@ -17,9 +36,16 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  try {
+    const storedV = localStorage.getItem("APP_VERSION");
+    if (storedV !== APP_VERSION) {
+      clearAllAppStorage();
+      localStorage.setItem("APP_VERSION", APP_VERSION);
+    }
+  } catch {}
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     try {
-        const item = window.localStorage.getItem('currentUser');
+      const item = window.sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
         return item ? JSON.parse(item) : null;
     } catch (error) {
         console.error("Falha ao carregar usuário do localStorage", error);
@@ -54,7 +80,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const logout = useCallback(() => {
+    try { clearAllAppStorage(); } catch {}
     setCurrentUser(null);
+    // opcional: window.location.reload(); // se quiser recarregar a UI
   }, []);
 
   const grantAccess = useCallback(async (policial: Policial, senha: string, role: UserRole = 'SUBORDINADO', adminPassword?: string): Promise<{ ok: boolean; error?: string }> => {
