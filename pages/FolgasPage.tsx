@@ -36,7 +36,7 @@ const FolgasPage: React.FC = () => {
     const [currentFolga, setCurrentFolga] = useState<Partial<Folga> | null>(null);
     const [modalMode, setModalMode] = useState<'add' | 'trocar' | 'excluir' | 'parecer' | 'sargento'>('add');
     const [parecer, setParecer] = useState("");
-    const [sargentoSelecionadold, setSargentoSelecionadold] = useState<number | undefined>();
+    const [sargentoSelecionadold, setSargentoSelecionadold] = useState<string | undefined>();
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'warning' } | null>(null);
     const [policialSearch, setPolicialSearch] = useState('');
     const [highlightedFolgas, setHighlightedFolgas] = useState<Set<string>>(new Set());
@@ -329,7 +329,7 @@ const FolgasPage: React.FC = () => {
                                             />
                                             <select
                                                 value={currentFolga.policialld || ''}
-                                                onChange={e => setCurrentFolga(p => ({ ...p, policialld: Number(e.target.value) }))}
+                                                onChange={e => setCurrentFolga(p => ({ ...p, policialld: e.target.value }))}
                                                 className="w-full border border-gray-300 rounded-md p-2"
                                                 required
                                                 size={Math.min(5, filteredPoliciaisParaSelecao.length + 1)}
