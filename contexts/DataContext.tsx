@@ -1,9 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { Policial, Folga, Historico, User, StatusFolga, Aprovacao, LeaveLedgerEntry, Ferias, FeriasStatus, AgendaEvento, Notificacao, Comentario, Grupo, ProtocoloDocumento, EventoHistorico } from '../types';
-import { db } from '../firebase';
-import { collection, onSnapshot, addDoc, doc, updateDoc, writeBatch, query, where, getDocs, runTransaction, serverTimestamp, increment } from 'firebase/firestore';
-import { NOME_CIA, CODIGO_CIA } from '../constants';
-
+import { api } from './api';
 
 interface DataState {
   policiais: Policial[];
@@ -56,68 +53,36 @@ export const useData = () => {
     return context;
 };
 
-// Helper to create a history entry
-const createHistorico = (evento: EventoHistorico, actor: User, details: Partial<Historico>): Omit<Historico, 'id'> => ({
-    evento, actorId: actor.id, actorNome: actor.nome, timestamp: new Date().toISOString(), 
-    pelotao: actor.pelotao || 'N/A', dataOriginal: null, dataNova: null, motivo: null, antesDepois: null, ...details
-});
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [state, setState] = useState<DataState>({
         policiais: [], folgas: [], historico: [], users: [], leaveLedger: [], ferias: [], agendaEventos: [], notificacoes: [], comentarios: [], grupos: [], protocoloDocs: [],
     });
+    
+    const fetchData = useCallback(async () => {
+        try {
+            setLoading(true);
+            const allData = await api.getAllData();
+            setState(allData);
+        } catch (error) {
+            console.error("Failed to fetch data from API", error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        const collections: (keyof DataState)[] = ['policiais', 'folgas', 'historico', 'users', 'leaveLedger', 'ferias', 'agendaEventos', 'notificacoes', 'comentarios', 'grupos', 'protocoloDocs'];
-        const unsubscribes = collections.map(collectionName => {
-            const q = query(collection(db, collectionName));
-            return onSnapshot(q, querySnapshot => {
-                const data = querySnapshot.docs.map(doc => {
-                    const docData = doc.data();
-                    // Firestore Timestamps need to be converted
-                    Object.keys(docData).forEach(key => {
-                        if (docData[key]?.toDate) {
-                            docData[key] = docData[key].toDate().toISOString();
-                        }
-                    });
-                    
-                    if (collectionName === 'folgas') return { ...docData, folgald: doc.id };
-                    return { ...docData, id: doc.id };
-                });
-                setState(prevState => ({ ...prevState, [collectionName]: data }));
-                setLoading(false);
-            }, error => {
-                console.error(`Error fetching ${collectionName}:`, error);
-                setLoading(false);
-            });
-        });
+        fetchData();
+    }, [fetchData]);
 
-        return () => unsubscribes.forEach(unsub => unsub());
-    }, []);
     
     const addAndPushNotifications = useCallback(async (notifications: Omit<Notificacao, 'id'>[]) => {
         if (!notifications || notifications.length === 0) return;
-        const batch = writeBatch(db);
-        notifications.forEach(notif => {
-            const newNotifRef = doc(collection(db, 'notificacoes'));
-            batch.set(newNotifRef, notif);
-        });
-        await batch.commit();
-
-        if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') return;
-        
-        const registration = await navigator.serviceWorker.getRegistration();
-        if (!registration) return;
-
-        notifications.forEach((n, i) => {
-            registration.showNotification('Atualização SIGMA-E', {
-                body: n.mensagem, icon: '/vite.svg', data: { url: n.link || '/dashboard' }, tag: `sigma-notif-${Date.now() + i}`
-            });
-        });
-    }, []);
+        const completeNotifications = notifications.map(n => ({...n, id: String(Date.now() + Math.random())}));
+        await api.addNotificacoes(completeNotifications);
+        await fetchData(); // Refresh data
+    }, [fetchData]);
 
     const getYearFromISODate = (iso: string) => Number(iso.slice(0, 4));
     
@@ -163,10 +128,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const newFolgaData = {
             policialld: policial.id, nome: policial.nome, re: policial.re, pelotao: policial.pelotao, data: folgaData.data,
             motivo: folgaData.motivo, status: StatusFolga.ATIVA, aprovacao, criadaPorld: currentUser.id, atualizadoEm: new Date().toISOString(),
-            trocadaPara: null, sargentoResponsavelld, criadoEm: new Date().toISOString()
+            trocadaPara: null, sargentoResponsavelld
         };
-        const newFolgaRef = await addDoc(collection(db, "folgas"), newFolgaData);
-        await addDoc(collection(db, "historico"), createHistorico(EventoHistorico.ACIONAR_FOLGA, currentUser, { folgald: newFolgaRef.id, policialld: policial.id, nome: policial.nome, re: policial.re, motivo: `Acionada: ${folgaData.motivo}`, antesDepois: { depois: newFolgaData } }));
+        await api.createFolga(newFolgaData, currentUser);
+        await fetchData();
         
         const sargento = state.users.find(u => u.id === sargentoResponsavelld);
         if(sargento){
@@ -176,13 +141,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 link: `/folgas?aprovacao=${Aprovacao.ENVIADA_SARGENTO}`, criadoEm: new Date().toISOString()
             }]);
         }
-    }, [state.policiais, state.users, addAndPushNotifications]);
+    }, [state.policiais, state.users, addAndPushNotifications, fetchData]);
 
     const updateFolga = useCallback(async (folgald: string, updates: Partial<Folga>, currentUser: User) => {
-        const folgaRef = doc(db, "folgas", folgald);
-        await updateDoc(folgaRef, { ...updates, atualizadoEm: new Date().toISOString(), atualizadoPorld: currentUser.id });
-        
-        const updatedFolga = { ...state.folgas.find(f => f.folgald === folgald)!, ...updates };
+        // Fix: Explicitly type `updatedFolga` to prevent it from being inferred as `unknown`.
+        const updatedFolga: Folga = await api.updateFolga(folgald, updates, currentUser);
+        await fetchData();
         
         const newNotifications: Omit<Notificacao, 'id'>[] = [];
         const userDoPolicial = state.users.find(u => u.policialId === updatedFolga.policialld);
@@ -198,62 +162,49 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
              newNotifications.push({ policialId: sargentoDoPelotao.id, mensagem: `Folga de ${updatedFolga.nome} foi validada.`, lida: false, link: '/folgas', criadoEm: new Date().toISOString()});
         }
         if (newNotifications.length > 0) await addAndPushNotifications(newNotifications);
-    }, [state.folgas, state.users, addAndPushNotifications]);
+    }, [state.users, addAndPushNotifications, fetchData]);
 
     const addPolicial = useCallback(async (policialData: Omit<Policial, 'id'>, currentUser: User) => {
-        const newDocRef = await addDoc(collection(db, "policiais"), policialData);
-        await addDoc(collection(db, "historico"), createHistorico(EventoHistorico.CREATE_POLICIAL, currentUser, { policialld: newDocRef.id, antesDepois: { depois: policialData } }));
-    }, []);
+        await api.createPolicial(policialData, currentUser);
+        await fetchData();
+    }, [fetchData]);
 
     const updatePolicial = useCallback(async (policialData: Policial, currentUser: User) => {
-        const { id, ...data } = policialData;
-        await updateDoc(doc(db, "policiais", id), data);
-        await addDoc(collection(db, "historico"), createHistorico(EventoHistorico.UPDATE_POLICIAL, currentUser, { policialld: id }));
-    }, []);
+        await api.updatePolicial(policialData, currentUser);
+        await fetchData();
+    }, [fetchData]);
     
     const deletePolicial = useCallback(async (policialId: string, currentUser: User) => {
-        await updateDoc(doc(db, "policiais", policialId), { ativo: false });
-        await addDoc(collection(db, "historico"), createHistorico(EventoHistorico.DELETE_POLICIAL, currentUser, { policialld: policialId }));
-    }, []);
+        await api.deletePolicial(policialId, currentUser);
+        await fetchData();
+    }, [fetchData]);
     
     const bulkUpsertPoliciais = useCallback(async (policiaisData: (Omit<Policial, 'id'> & { re: string })[], currentUser: User) => {
-        const batch = writeBatch(db);
-        for (const policial of policiaisData) {
-            const q = query(collection(db, 'policiais'), where('re', '==', policial.re));
-            const snapshot = await getDocs(q);
-            if (snapshot.empty) {
-                const newDocRef = doc(collection(db, 'policiais'));
-                batch.set(newDocRef, policial);
-            } else {
-                batch.update(snapshot.docs[0].ref, policial);
-            }
-        }
-        await batch.commit();
-        await addDoc(collection(db, "historico"), createHistorico(EventoHistorico.BULK_UPSERT_POLICIAIS, currentUser, { motivo: `Importados/Atualizados: ${policiaisData.length}` }));
-    }, []);
+        await api.bulkUpsertPoliciais(policiaisData, currentUser);
+        await fetchData();
+    }, [fetchData]);
     
     const adminAddLeaveCredits = useCallback(async (opts: { policialId: string; year: number; delta: number; reason?: string }, currentUser: User) => {
-        const entryData = { ...opts, createdAt: new Date().toISOString(), createdById: currentUser.id, createdByNome: currentUser.nome };
-        await addDoc(collection(db, 'leaveLedger'), entryData);
-    }, []);
+        await api.addLeaveCredit(opts, currentUser);
+        await fetchData();
+    }, [fetchData]);
 
     const addFerias = useCallback(async (feriasData: Omit<Ferias, 'id' | 'criadoEm' | 'criadoPorId' | 'atualizadoEm'>, currentUser: User) => {
-        const newFeriasData = { ...feriasData, criadoPorId: currentUser.id, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString() };
-        await addDoc(collection(db, "ferias"), newFeriasData);
-        await addDoc(collection(db, "historico"), createHistorico(EventoHistorico.CREATE_FERIAS, currentUser, { policialld: newFeriasData.policialId, antesDepois: { depois: newFeriasData } }));
-    }, []);
+        await api.createFerias(feriasData, currentUser);
+        await fetchData();
+    }, [fetchData]);
 
     const updateFerias = useCallback(async (feriasId: string, updates: Partial<Ferias>, currentUser: User) => {
-        await updateDoc(doc(db, "ferias", feriasId), { ...updates, atualizadoPorId: currentUser.id, atualizadoEm: new Date().toISOString() });
-    }, []);
+        await api.updateFerias(feriasId, updates, currentUser);
+        await fetchData();
+    }, [fetchData]);
 
     const addAgendaEvento = useCallback(async (eventoData: Omit<AgendaEvento, 'id' | 'criadoEm' | 'criadoPorId' | 'atualizadoEm'>, currentUser: User) => {
-        const newEventData = { ...eventoData, criadoPorId: currentUser.id, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString() };
-        const newDocRef = await addDoc(collection(db, "agendaEventos"), newEventData);
-        const createdEvent = { ...newEventData, id: newDocRef.id };
+        // Fix: Explicitly type `createdEvent` to prevent it from being inferred as `unknown`.
+        const createdEvent: AgendaEvento = await api.createAgendaEvento(eventoData, currentUser);
+        await fetchData();
 
         const userMap = new Map(state.users.map(u => [u.policialId, u]));
-        // Fix: Explicitly type the mapped notification object to conform to Omit<Notificacao, 'id'>, resolving type predicate errors.
         const notifications: Omit<Notificacao, 'id'>[] = createdEvent.policiaisIds.map(policialId => {
             const user = userMap.get(policialId);
             if (!user) return null;
@@ -263,23 +214,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 lida: false, link: '/calendario', criadoEm: new Date().toISOString()
             };
             return notif;
-        // Fix: Corrected the type predicate to properly filter out null values and satisfy TypeScript's type assignability rules.
         }).filter((n): n is Omit<Notificacao, 'id'> => n !== null);
         await addAndPushNotifications(notifications);
         return createdEvent;
-    }, [addAndPushNotifications, state.users]);
+    }, [addAndPushNotifications, state.users, fetchData]);
 
     const updateAgendaEvento = useCallback(async (eventoId: string, updates: Partial<AgendaEvento>, currentUser: User) => {
         const original = state.agendaEventos.find(e => e.id === eventoId)!;
-        const updatedData = { ...updates, atualizadoPorId: currentUser.id, atualizadoEm: new Date().toISOString() };
-        await updateDoc(doc(db, "agendaEventos", eventoId), updatedData);
-        const updatedEvent = { ...original, ...updatedData };
+        // Fix: Explicitly type `updatedEvent` to prevent it from being inferred as `unknown`.
+        const updatedEvent: AgendaEvento = await api.updateAgendaEvento(eventoId, updates, currentUser);
+        await fetchData();
         
         const originalIds = new Set(original.policiaisIds);
         const addedPoliciais = (updatedEvent.policiaisIds || []).filter(id => !originalIds.has(id));
         if (addedPoliciais.length > 0) {
             const userMap = new Map(state.users.map(u => [u.policialId, u]));
-            // Fix: Explicitly type the mapped notification object to conform to Omit<Notificacao, 'id'>, resolving type predicate errors.
             const notifications: Omit<Notificacao, 'id'>[] = addedPoliciais.map(policialId => {
                 const user = userMap.get(policialId);
                 if (!user) return null;
@@ -289,31 +238,29 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     lida: false, link: '/calendario', criadoEm: new Date().toISOString()
                 };
                 return notif;
-            // Fix: Corrected the type predicate to properly filter out null values and satisfy TypeScript's type assignability rules.
             }).filter((n): n is Omit<Notificacao, 'id'> => n !== null);
             await addAndPushNotifications(notifications);
         }
         return updatedEvent;
-    }, [addAndPushNotifications, state.agendaEventos, state.users]);
+    }, [addAndPushNotifications, state.agendaEventos, state.users, fetchData]);
 
     const deleteAgendaEvento = useCallback(async (eventoId: string, currentUser: User) => {
-        await updateDoc(doc(db, "agendaEventos", eventoId), { policiaisIds: [] }); // Soft delete
-    }, []);
+        await api.deleteAgendaEvento(eventoId, currentUser);
+        await fetchData();
+    }, [fetchData]);
 
     const markNotificacoesAsRead = useCallback(async (targetId: string) => {
-        const q = query(collection(db, "notificacoes"), where("policialId", "==", targetId), where("lida", "==", false));
-        const snapshot = await getDocs(q);
-        const batch = writeBatch(db);
-        snapshot.docs.forEach(d => batch.update(d.ref, { lida: true }));
-        await batch.commit();
-    }, []);
+        await api.markNotificacoesAsRead(targetId);
+        await fetchData();
+    }, [fetchData]);
 
     const addComentario = useCallback(async (folgald: string, mensagem: string, currentUser: User) => {
         if (!mensagem.trim()) return;
         const folga = state.folgas.find(f => f.folgald === folgald);
         if(!folga) return;
         
-        await addDoc(collection(db, "comentarios"), { folgald, mensagem, actorId: currentUser.id, actorNome: currentUser.nome, actorPostoGrad: currentUser.postoGrad, timestamp: new Date().toISOString() });
+        await api.createComentario({ folgald, mensagem }, currentUser);
+        await fetchData();
 
         const sargento = state.users.find(u => u.role === 'SARGENTO' && u.pelotao === folga.pelotao && u.ativo);
         const userDoPolicial = state.users.find(u => u.policialId === folga.policialld);
@@ -322,49 +269,33 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (currentUser.role === 'SUBORDINADO' && sargento) { targetUser = sargento; notifMessage = `${currentUser.nome} comentou na folga de ${folga.nome}.`; }
         else if (currentUser.role === 'SARGENTO' && userDoPolicial) { targetUser = userDoPolicial; notifMessage = `Seu sargento comentou em sua folga.`; }
         if(targetUser) await addAndPushNotifications([{ policialId: targetUser.id, mensagem: notifMessage, lida: false, link: `/folgas`, criadoEm: new Date().toISOString() }]);
-    }, [state.folgas, state.users, addAndPushNotifications]);
+    }, [state.folgas, state.users, addAndPushNotifications, fetchData]);
 
     const addGrupo = useCallback(async (nome: string, currentUser: User) => {
-        await addDoc(collection(db, "grupos"), { nome });
-    }, []);
+        await api.createGrupo(nome, currentUser);
+        await fetchData();
+    }, [fetchData]);
 
     const updateGrupo = useCallback(async (grupo: Grupo, currentUser: User) => {
-        const { id, ...data } = grupo;
-        await updateDoc(doc(db, "grupos", id), data);
-    }, []);
+        await api.updateGrupo(grupo, currentUser);
+        await fetchData();
+    }, [fetchData]);
 
     const deleteGrupo = useCallback(async (id: string, currentUser: User) => {
-        const isUsed = state.policiais.some(p => p.pelotao === state.grupos.find(g => g.id === id)?.nome);
-        if (isUsed) throw new Error("Não é possível excluir um grupo que está em uso por policiais.");
-        await updateDoc(doc(db, "grupos", id), { nome: `_DELETADO_${Date.now()}` }); // Soft delete
-    }, [state.policiais, state.grupos]);
+        await api.deleteGrupo(id, currentUser);
+        await fetchData();
+    }, [fetchData]);
 
     const addProtocoloDoc = useCallback(async (docData: Omit<ProtocoloDocumento, 'id'|'numero'|'ano'|'sequencial'|'criadoEm'>, currentUser: User) => {
-        const ano = new Date(docData.dataEmissao + 'T12:00:00').getFullYear();
-        const anoCurto = String(ano).slice(-2);
-        const counterRef = doc(db, 'metadata', `protocolo_${ano}`);
-        let sequencial = 1;
-
-        await runTransaction(db, async (transaction) => {
-            const counterDoc = await transaction.get(counterRef);
-            if (counterDoc.exists()) {
-                sequencial = counterDoc.data().valor + 1;
-            }
-            transaction.set(counterRef, { valor: sequencial }, { merge: true });
-        });
-        
-        const numero = `${String(sequencial).padStart(3, '0')}/${CODIGO_CIA}/${anoCurto}`;
-        const newDocData = { ...docData, numero, ano, sequencial, criadoEm: new Date().toISOString() };
-        const newDocRef = await addDoc(collection(db, "protocoloDocs"), newDocData);
-        await addDoc(collection(db, "historico"), createHistorico(EventoHistorico.CREATE_PROTOCOLO, currentUser, { motivo: `Protocolado doc nº ${numero}`, antesDepois: { depois: newDocData }}));
-        return { ...newDocData, id: newDocRef.id };
-    }, []);
+        const newDoc = await api.createProtocoloDoc(docData, currentUser);
+        await fetchData();
+        return newDoc;
+    }, [fetchData]);
 
     const adminResetProtocoloCounter = useCallback(async (currentUser: User) => {
-        const ano = new Date().getFullYear();
-        const counterRef = doc(db, 'metadata', `protocolo_${ano}`);
-        await updateDoc(counterRef, { valor: 0 });
-    }, []);
+        await api.resetProtocoloCounter(currentUser);
+        await fetchData();
+    }, [fetchData]);
 
     const value: DataContextType = {
         ...state, loading, addFolga, updateFolga, addPolicial, updatePolicial, deletePolicial, bulkUpsertPoliciais, adminAddLeaveCredits,

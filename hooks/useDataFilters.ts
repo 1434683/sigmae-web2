@@ -237,7 +237,7 @@ export const useFilteredFerias = (filters: { ano: string; pelotao: string; statu
             .map(f => {
                 const policial = policiaisMap.get(f.policialId);
                 // Fix: Merge policial data into the ferias object to provide up-to-date details (like name, platoon),
-                // but crucially, exclude the policial's numeric `id` to prevent it from overwriting the ferias's string `id`.
+                // but crucially, exclude the policial's `id` to prevent it from overwriting the ferias's string `id`.
                 // This resolves the type conflict that caused errors in the UI components.
                 if (policial) {
                     const { id: _policialId, ...policialDetails } = policial;

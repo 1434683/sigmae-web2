@@ -42,8 +42,8 @@ const FeriasPage: React.FC = () => {
 
     useEffect(() => {
         if (!isModalOpen || !currentFerias.policialId || !currentFerias.anoReferencia || currentFerias.id) return;
-        // Fix: Explicitly type the `total` accumulator as a number to resolve type inference issues with the `+` operator.
-        const diasJaGozados = ferias.filter(f => f.policialId === currentFerias.policialId && f.anoReferencia === currentFerias.anoReferencia && f.status === FeriasStatus.AGENDADA).reduce((total: number, f) => total + (f.duracaoDias || 0), 0);
+        // Fix: Explicitly type the `total` accumulator as a number and provide an initial value of 0 to the `reduce` function.
+        const diasJaGozados = ferias.filter(f => f.policialId === currentFerias.policialId && f.anoReferencia === currentFerias.anoReferencia && f.status === FeriasStatus.AGENDADA).reduce((total: number, f) => total + f.duracaoDias, 0);
         const options: (15|30)[] = [];
         if (diasJaGozados === 0) options.push(15, 30);
         else if (diasJaGozados === 15) options.push(15);
