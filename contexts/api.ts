@@ -5,36 +5,36 @@ const SIMULATED_LATENCY = 150; // ms
 
 // --- SEED DATA (from original DataContext) ---
 const SEED_POLICIAIS: Policial[] = [
-  { id: 1, nome: 'CARLOS ALBERTO DE NOBREGA', re: '123456-7', postoGrad: 'Cb', ativo: true, pelotao: 'PEL-A' },
-  { id: 2, nome: 'SILVIO SANTOS', re: '987654-3', postoGrad: '3º Sgt', ativo: true, pelotao: 'PEL-B' },
-  { id: 3, nome: 'FAUSTO SILVA', re: '112233-4', postoGrad: 'Sd 1ª Cl', ativo: false, pelotao: 'ADM' },
-  { id: 4, nome: 'ANA MARIA BRAGA', re: '445566-7', postoGrad: 'Cap', ativo: true, pelotao: 'ADM' },
-  { id: 5, nome: 'RODRIGO FARO', re: '778899-0', postoGrad: '2º Ten', ativo: true, pelotao: 'ROCAM' },
-  { id: 6, nome: 'USUARIO TESTE SUBORDINADO', re: '123123-1', postoGrad: 'Sd 2ª Cl', ativo: true, pelotao: 'PEL-A' },
+  { id: '1', nome: 'CARLOS ALBERTO DE NOBREGA', re: '123456-7', postoGrad: 'Cb', ativo: true, pelotao: 'PEL-A' },
+  { id: '2', nome: 'SILVIO SANTOS', re: '987654-3', postoGrad: '3º Sgt', ativo: true, pelotao: 'PEL-B' },
+  { id: '3', nome: 'FAUSTO SILVA', re: '112233-4', postoGrad: 'Sd 1ª Cl', ativo: false, pelotao: 'ADM' },
+  { id: '4', nome: 'ANA MARIA BRAGA', re: '445566-7', postoGrad: 'Cap', ativo: true, pelotao: 'ADM' },
+  { id: '5', nome: 'RODRIGO FARO', re: '778899-0', postoGrad: '2º Ten', ativo: true, pelotao: 'ROCAM' },
+  { id: '6', nome: 'USUARIO TESTE SUBORDINADO', re: '123123-1', postoGrad: 'Sd 2ª Cl', ativo: true, pelotao: 'PEL-A' },
 ];
 const SEED_USERS: User[] = [
-    { id: 101, policialId: null, nome: 'Administrador do Sistema', reLogin: '000000', role: 'ADMIN', acessoLiberado: true, senha: 'admin123', ativo: true, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString() },
+    { id: '101', policialId: null, nome: 'Administrador do Sistema', reLogin: '000000', role: 'ADMIN', acessoLiberado: true, senha: 'admin123', ativo: true, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString() },
     // Adiciona um usuário "Sargento Mestre" para testes, com visibilidade de todos os pelotões
-    { id: 102, policialId: null, nome: 'Sargento Mestre (TESTE)', reLogin: '132155', role: 'SARGENTO', acessoLiberado: true, senha: '132155', ativo: true, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), pelotao: 'TODOS', postoGrad: '1º Sgt' },
+    { id: '102', policialId: null, nome: 'Sargento Mestre (TESTE)', reLogin: '132155', role: 'SARGENTO', acessoLiberado: true, senha: '132155', ativo: true, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), pelotao: 'TODOS', postoGrad: '1º Sgt' },
     // Adiciona um usuário "Subordinado" para testes
-    { id: 103, policialId: 6, nome: 'USUARIO TESTE SUBORDINADO', reLogin: '123123', role: 'SUBORDINADO', acessoLiberado: true, senha: '123123', ativo: true, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), pelotao: 'PEL-A', postoGrad: 'Sd 2ª Cl' },
+    { id: '103', policialId: '6', nome: 'USUARIO TESTE SUBORDINADO', reLogin: '123123', role: 'SUBORDINADO', acessoLiberado: true, senha: '123123', ativo: true, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), pelotao: 'PEL-A', postoGrad: 'Sd 2ª Cl' },
 ];
 const SEED_FOLGAS: Folga[] = [
-  { folgald: '1', policialld: 1, nome: 'CARLOS ALBERTO DE NOBREGA', re: '123456-7', data: '2024-07-20', status: StatusFolga.ATIVA, aprovacao: Aprovacao.VALIDADA_ADMIN, criadaPorld: 101, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), pelotao: 'PEL-A', trocadaPara: null, motivo: null, adminld: 101, adminParecer: 'Ok' },
-  { folgald: '2', policialld: 2, nome: 'SILVIO SANTOS', re: '987654-3', data: '2024-07-22', status: StatusFolga.ATIVA, aprovacao: Aprovacao.VALIDADA_ADMIN, criadaPorld: 101, criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), pelotao: 'PEL-B', trocadaPara: null, motivo: null, adminld: 101, adminParecer: 'Ok' },
+  { folgald: '1', policialld: '1', nome: 'CARLOS ALBERTO DE NOBREGA', re: '123456-7', data: '2024-07-20', status: StatusFolga.ATIVA, aprovacao: Aprovacao.VALIDADA_ADMIN, criadaPorld: '101', criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), pelotao: 'PEL-A', trocadaPara: null, motivo: null, adminld: '101', adminParecer: 'Ok' },
+  { folgald: '2', policialld: '2', nome: 'SILVIO SANTOS', re: '987654-3', data: '2024-07-22', status: StatusFolga.ATIVA, aprovacao: Aprovacao.VALIDADA_ADMIN, criadaPorld: '101', criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), pelotao: 'PEL-B', trocadaPara: null, motivo: null, adminld: '101', adminParecer: 'Ok' },
 ];
 const SEED_FERIAS: Ferias[] = [
     // Fix: Use FeriasStatus enum, which is now imported.
-    { id: 'fer1', policialId: 1, anoReferencia: 2024, dataInicio: '2024-09-01', dataFim: '2024-09-30', duracaoDias: 30, status: FeriasStatus.AGENDADA, criadoEm: new Date().toISOString(), criadoPorId: 101, atualizadoEm: new Date().toISOString() },
+    { id: 'fer1', policialId: '1', anoReferencia: 2024, dataInicio: '2024-09-01', dataFim: '2024-09-30', duracaoDias: 30, status: FeriasStatus.AGENDADA, criadoEm: new Date().toISOString(), criadoPorId: '101', atualizadoEm: new Date().toISOString() },
     // Fix: Use FeriasStatus enum, which is now imported.
-    { id: 'fer2', policialId: 2, anoReferencia: 2024, dataInicio: '2024-10-15', dataFim: '2024-10-29', duracaoDias: 15, status: FeriasStatus.AGENDADA, criadoEm: new Date().toISOString(), criadoPorId: 101, atualizadoEm: new Date().toISOString() },
+    { id: 'fer2', policialId: '2', anoReferencia: 2024, dataInicio: '2024-10-15', dataFim: '2024-10-29', duracaoDias: 15, status: FeriasStatus.AGENDADA, criadoEm: new Date().toISOString(), criadoPorId: '101', atualizadoEm: new Date().toISOString() },
 ];
 // Fix: Added SEED_GRUPOS to provide initial data for pelotões/grupos.
 const SEED_GRUPOS: Grupo[] = [
-  { id: 1, nome: 'PEL-A' },
-  { id: 2, nome: 'PEL-B' },
-  { id: 3, nome: 'ADM' },
-  { id: 4, nome: 'ROCAM' },
+  { id: '1', nome: 'PEL-A' },
+  { id: '2', nome: 'PEL-B' },
+  { id: '3', nome: 'ADM' },
+  { id: '4', nome: 'ROCAM' },
 ];
 
 const INITIAL_DB = { 
@@ -73,7 +73,7 @@ const simulateRequest = <T>(data: T, latency = SIMULATED_LATENCY): Promise<T> =>
 const simulateError = <T>(message: string): Promise<T> => Promise.reject(new Error(message));
 
 const createHistorico = (evento: EventoHistorico, actor: User, details: Partial<Historico>): Historico => ({
-    id: Date.now(), evento, actorId: actor.id, actorNome: actor.nome, timestamp: new Date().toISOString(), 
+    id: String(Date.now()), evento, actorId: actor.id, actorNome: actor.nome, timestamp: new Date().toISOString(), 
     pelotao: actor.pelotao || 'N/A', dataOriginal: null, dataNova: null, motivo: null, antesDepois: null, ...details
 });
 
@@ -103,7 +103,7 @@ export const api = {
         const existing = db.users.find(u => u.policialId === policial.id);
         // Fix: Ensure the object created for a new user satisfies the `User` type by providing all required fields.
         const userToUpsert: User = existing ? { ...existing } : {
-            id: Date.now(), policialId: policial.id, criadoEm: new Date().toISOString(), ativo: true, nome: '', reLogin: '', role: 'SUBORDINADO', senha: '', acessoLiberado: false, atualizadoEm: ''
+            id: String(Date.now()), policialId: policial.id, criadoEm: new Date().toISOString(), ativo: true, nome: '', reLogin: '', role: 'SUBORDINADO', senha: '', acessoLiberado: false, atualizadoEm: ''
         };
         Object.assign(userToUpsert, {
             nome: policial.nome, reLogin, role, senha, acessoLiberado: true, atualizadoEm: new Date().toISOString(),
@@ -118,7 +118,7 @@ export const api = {
         return simulateRequest(userToUpsert);
     },
 
-    resetPassword: (policialId: number, novaSenha: string) => {
+    resetPassword: (policialId: string, novaSenha: string) => {
         if(novaSenha.length < 3) return simulateError("Senha muito curta.");
         const user = db.users.find(u => u.policialId === policialId);
         if (!user) return simulateError("Usuário não encontrado.");
@@ -129,7 +129,7 @@ export const api = {
         return simulateRequest(user);
     },
 
-    revokeAccess: (policialId: number) => {
+    revokeAccess: (policialId: string) => {
         const user = db.users.find(u => u.policialId === policialId);
         if (!user) return simulateError("Usuário não encontrado.");
         user.acessoLiberado = false;
@@ -161,7 +161,7 @@ export const api = {
 
     // --- POLICIAIS ---
     createPolicial: (data: Omit<Policial, 'id'>, actor: User) => {
-        const newPolicial = { ...data, id: Date.now() };
+        const newPolicial = { ...data, id: String(Date.now()) };
         db.policiais.push(newPolicial);
         db.historico.unshift(createHistorico(EventoHistorico.CREATE_POLICIAL, actor, { policialld: newPolicial.id, nome: newPolicial.nome, re: newPolicial.re, antesDepois: { depois: newPolicial }}));
         saveDb();
@@ -176,7 +176,7 @@ export const api = {
         saveDb();
         return simulateRequest(data);
     },
-    deletePolicial: (id: number, actor: User) => {
+    deletePolicial: (id: string, actor: User) => {
         const original = db.policiais.find(p => p.id === id);
         if(!original) return simulateError("Policial não encontrado.");
         db.policiais = db.policiais.filter(p => p.id !== id);
@@ -190,7 +190,7 @@ export const api = {
         data.forEach(p => {
             const existing = map.get(p.re.split('-')[0]);
             if(existing) Object.assign(existing, p);
-            else db.policiais.push({ ...p, id: Date.now() + Math.random() });
+            else db.policiais.push({ ...p, id: String(Date.now() + Math.random()) });
         });
         db.historico.unshift(createHistorico(EventoHistorico.BULK_UPSERT_POLICIAIS, actor, { motivo: `Importados/Atualizados: ${data.length}` }));
         saveDb();
@@ -198,7 +198,7 @@ export const api = {
     },
 
     // --- CRÉDITOS ---
-    addLeaveCredit: (opts: { policialId: number, year: number, delta: number, reason?: string }, actor: User) => {
+    addLeaveCredit: (opts: { policialId: string, year: number, delta: number, reason?: string }, actor: User) => {
         const entry: LeaveLedgerEntry = { id: `ll-${Date.now()}`, ...opts, createdAt: new Date().toISOString(), createdById: actor.id, createdByNome: actor.nome };
         db.leaveLedger.unshift(entry);
         saveDb();
@@ -257,7 +257,7 @@ export const api = {
         saveDb();
         return simulateRequest({ ok: true });
     },
-    markNotificacoesAsRead: (targetId: number) => {
+    markNotificacoesAsRead: (targetId: string) => {
         db.notificacoes.forEach(n => { if (n.policialId === targetId) n.lida = true; });
         saveDb();
         return simulateRequest({ ok: true });
@@ -277,7 +277,7 @@ export const api = {
         if (db.grupos.some(g => g.nome.toLowerCase() === nome.toLowerCase())) {
             return simulateError("Um grupo com este nome já existe.");
         }
-        const newGrupo: Grupo = { id: Date.now(), nome };
+        const newGrupo: Grupo = { id: String(Date.now()), nome };
         db.grupos.push(newGrupo);
         db.historico.unshift(createHistorico(EventoHistorico.CREATE_GRUPO, actor, { antesDepois: { depois: newGrupo } }));
         saveDb();
@@ -298,7 +298,7 @@ export const api = {
         saveDb();
         return simulateRequest(grupo);
     },
-    deleteGrupo: (id: number, actor: User) => {
+    deleteGrupo: (id: string, actor: User) => {
         const original = db.grupos.find(g => g.id === id);
         if (!original) return simulateError("Grupo não encontrado.");
         const isUsed = db.policiais.some(p => p.pelotao === original.nome);

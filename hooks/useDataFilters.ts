@@ -162,7 +162,7 @@ export const useCalendarData = () => {
         const eventosFiltrados = agendaEventos.filter(evento => {
             if (role === 'ADMIN' || (role === 'SARGENTO' && currentUser?.pelotao === 'TODOS')) return true;
             if (role === 'SARGENTO') return evento.policiaisIds.some(id => policiaisMap.get(id)?.pelotao === currentUser?.pelotao);
-            if (role === 'SUBORDINADO') return evento.policiaisIds.includes(currentUser?.policialId ?? -1);
+            if (role === 'SUBORDINADO') return evento.policiaisIds.includes(currentUser?.policialId ?? "-1");
             return false;
         });
 
@@ -183,7 +183,7 @@ export const useFilteredHistorico = (filters: { userId: string; dataInicio: stri
     return useMemo(() => {
         return historico.filter(item => {
             const itemDate = new Date(item.timestamp).getTime();
-            const matchUser = !filters.userId || item.actorId === parseInt(filters.userId);
+            const matchUser = !filters.userId || item.actorId === filters.userId;
             const matchDataInicio = !filters.dataInicio || itemDate >= new Date(filters.dataInicio).getTime();
             const matchDataFim = !filters.dataFim || itemDate <= new Date(filters.dataFim + 'T23:59:59').getTime();
             return matchUser && matchDataInicio && matchDataFim;
@@ -230,7 +230,7 @@ export const useLeaveBalanceData = (filters: { yearFilter: number, pelotaoFilter
 export const useFilteredFerias = (filters: { ano: string; pelotao: string; status: string; }) => {
     const { ferias, policiais } = useData();
     const { currentUser, role } = useAuth();
-    const policiaisMap = useMemo(() => new Map<number, Policial>(policiais.map(p => [p.id, p])), [policiais]);
+    const policiaisMap = useMemo(() => new Map(policiais.map(p => [p.id, p])), [policiais]);
 
     return useMemo(() => {
         return ferias
@@ -281,7 +281,7 @@ export const useEAPReportData = (filters: { tipoFiltro: TipoEvento, pelotaoFiltr
     return useMemo(() => {
         const eventosFiltrados = agendaEventos.filter(e => e.tipo === tipoFiltro);
         
-        const participantesMap = new Map<number, { policial: Policial, evento: typeof eventosFiltrados[0] }>();
+        const participantesMap = new Map<string, { policial: Policial, evento: typeof eventosFiltrados[0] }>();
         eventosFiltrados.forEach(evento => {
             evento.policiaisIds.forEach(policialId => {
                 const policial = roleFilteredPoliciais.find(p => p.id === policialId);

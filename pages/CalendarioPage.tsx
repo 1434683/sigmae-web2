@@ -193,7 +193,8 @@ const CalendarioPage: React.FC = () => {
                     {tiposDeEventosDoDia.map(tipo => {
                         const { icon: Icon, style } = EVENTO_ICON_MAP[tipo];
                         const count = eventosDoDia.filter(e => e.tipo === tipo).length;
-                        const title = `${count} ${TIPO_EVENTO_LABELS[tipo]}${count > 1 ? 's' : ''}`;
+                        // Fix: Cast `tipo` to `TipoEvento` to resolve index type error with `TIPO_EVENTO_LABELS`.
+                        const title = `${count} ${TIPO_EVENTO_LABELS[tipo as TipoEvento]}${count > 1 ? 's' : ''}`;
                         return (
                             <span key={tipo} className={`w-6 h-6 rounded-full flex items-center justify-center font-bold border-2 border-white ${style}`} title={title}>
                                <Icon className="h-4 w-4" />
@@ -227,7 +228,8 @@ const CalendarioPage: React.FC = () => {
                     <ul className="space-y-3">
                         {eventosDoDiaSelecionado.map(evento => {
                              const IconComponent = EVENTO_ICON_MAP[evento.tipo].icon;
-                             const colors = TIPO_EVENTO_COLORS[evento.tipo].split(' ');
+                             // Fix: Cast `evento.tipo` to `TipoEvento` to resolve index type error with `TIPO_EVENTO_COLORS`.
+                             const colors = TIPO_EVENTO_COLORS[evento.tipo as TipoEvento].split(' ');
                              const bgColor = colors.find(c => c.startsWith('bg-')) || 'bg-pm-gray-100';
                              const textColor = colors.find(c => c.startsWith('text-')) || 'text-pm-gray-800';
 
@@ -242,7 +244,7 @@ const CalendarioPage: React.FC = () => {
                                         <div className="flex-1">
                                             <div className="flex justify-between items-start">
                                                 <p className="font-semibold text-pm-gray-900">{evento.titulo}</p>
-                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${TIPO_EVENTO_COLORS[evento.tipo]}`}>{TIPO_EVENTO_LABELS[evento.tipo]}</span>
+                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${TIPO_EVENTO_COLORS[evento.tipo as TipoEvento]}`}>{TIPO_EVENTO_LABELS[evento.tipo as TipoEvento]}</span>
                                             </div>
                                             <p className="text-sm text-pm-gray-600"><strong>Horário:</strong> {evento.horaInicio} às {evento.horaFim}</p>
                                             <p className="text-sm text-pm-gray-600"><strong>Local:</strong> {evento.local}</p>

@@ -31,17 +31,20 @@ const AgendaPage: React.FC = () => {
 
     const [isModalOpen, setModalOpen] = useState(false);
     const [currentEvento, setCurrentEvento] = useState<Partial<AgendaEvento> | null>(null);
-    const [selectedPoliciais, setSelectedPoliciais] = useState<Set<number>>(new Set());
+    // Fix: Changed selectedPoliciais state to handle string IDs to match the Policial type.
+    const [selectedPoliciais, setSelectedPoliciais] = useState<Set<string>>(new Set());
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
     const [policialSearch, setPolicialSearch] = useState('');
     const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
     const [detailsEvento, setDetailsEvento] = useState<AgendaEvento | null>(null);
 
-    const policiaisMap = useMemo(() => new Map<number, Policial>(policiais.map(p => [p.id, p])), [policiais]);
+    const policiaisMap = useMemo(() => new Map(policiais.map(p => [p.id, p])), [policiais]);
     const sortedEventos = useSortedAgendaEventos();
 
-    const eapParticipants = useMemo(() => new Set<number>(agendaEventos.filter(e => e.tipo === TipoEvento.EAP).flatMap(e => e.policiaisIds)), [agendaEventos]);
-    const courseParticipants = useMemo(() => new Set<number>(agendaEventos.filter(e => e.tipo === TipoEvento.CURSO).flatMap(e => e.policiaisIds)), [agendaEventos]);
+    // Fix: Changed participant sets to handle string IDs to match the Policial type.
+    const eapParticipants = useMemo(() => new Set<string>(agendaEventos.filter(e => e.tipo === TipoEvento.EAP).flatMap(e => e.policiaisIds)), [agendaEventos]);
+    // Fix: Changed participant sets to handle string IDs to match the Policial type.
+    const courseParticipants = useMemo(() => new Set<string>(agendaEventos.filter(e => e.tipo === TipoEvento.CURSO).flatMap(e => e.policiaisIds)), [agendaEventos]);
 
     const filteredPoliciaisParaSelecao = useMemo(() => {
         let policeList = policiais.filter(p => p.ativo);
@@ -75,7 +78,8 @@ const AgendaPage: React.FC = () => {
         setModalOpen(true);
     };
 
-    const handlePoliceSelection = (policialId: number) => {
+    // Fix: Changed policialId parameter to string to match the Policial type.
+    const handlePoliceSelection = (policialId: string) => {
         setSelectedPoliciais(prev => { const newSet = new Set(prev); newSet.has(policialId) ? newSet.delete(policialId) : newSet.add(policialId); return newSet; });
     };
     
